@@ -5,7 +5,7 @@ from typing import Callable
 import numpy as np
 
 
-class Wave:
+class Wave2D:
     """
     2D wave object.
     """
