@@ -6,49 +6,52 @@ from matplotlib.colors import Normalize
 
 class Wave2DAnim:
     def __init__(self, wave, frames=480, interval=1):
-        self.wave = wave
-        self.frames = frames
-        self.interval = interval
+        self._wave = wave
+        self._frames = frames
+        self._interval = interval
 
-        self.x, self.y, self.u = self.wave.get()
-        self.xmin, self.xmax = self.x.min(), self.x.max()
-        self.ymin, self.ymax = self.y.min(), self.y.max()
-        self.umin, self.umax = self.u.min(), self.u.max()
+        self._x, self._y, self._u = self._wave.get_wave()
+        _, _, self._a, _, _, self._dt = self._wave.get_params()
+        self._xmin, self._xmax = -self._a, self._a
+        self._ymin, self._ymax = -self._a, self._a
+        self._umin, self._umax = self._u.min(), self._u.max()
 
-        self.fig = plt.figure()
-        self.ax = self.fig.add_subplot(111, projection="3d")
-        self.ax.set_xlim(self.xmin, self.xmax)
-        self.ax.set_ylim(self.ymin, self.ymax)
-        self.ax.set_zlim(self.umin, self.umax)
+        self._fig = plt.figure()
+        self._ax = self._fig.add_subplot(111, projection="3d")
+        self._ax.set_xlim(self._xmin, self._xmax)
+        self._ax.set_ylim(self._ymin, self._ymax)
+        self._ax.set_zlim(self._umin, self._umax)
 
-        self.norm = Normalize(vmin=self.umin, vmax=self.umax)
-        self.colormap = cm.viridis
-        self.surf = self.ax.plot_surface(
-            self.x, self.y, self.u, cmap=self.colormap, norm=self.norm
+        self._norm = Normalize(vmin=self._umin, vmax=self._umax)
+        self._colormap = cm.viridis
+        self._surf = self._ax.plot_surface(
+            self._x, self._y, self._u, cmap=self._colormap, norm=self._norm
         )
-        self.fig.colorbar(
-            cm.ScalarMappable(norm=self.norm, cmap=self.colormap),
-            ax=self.ax,
+        self._fig.colorbar(
+            cm.ScalarMappable(norm=self._norm, cmap=self._colormap),
+            ax=self._ax,
             shrink=0.5,
             aspect=5,
         )
 
     def update(self, i):
-        self.wave.update()
-        self.u = self.wave.get_wave()
-        self.ax.clear()
-        self.ax.set_xlim(self.xmin, self.xmax)
-        self.ax.set_ylim(self.ymin, self.ymax)
-        self.ax.set_zlim(self.umin, self.umax)
-        self.surf = self.ax.plot_surface(
-            self.x, self.y, self.u, cmap=self.colormap, norm=self.norm
+        self._wave.update()
+        _, _, self._u = self._wave.get_wave()
+        self._ax.clear()
+        self._ax.set_xlim(self._xmin, self._xmax)
+        self._ax.set_ylim(self._ymin, self._ymax)
+        self._ax.set_zlim(self._umin, self._umax)
+        self._surf = self._ax.plot_surface(
+            self._x, self._y, self._u, cmap=self._colormap, norm=self._norm
         )
-        self.ax.set_title("Wave Equation Free-Boundary", fontsize=16)
-        # self.ax.text2D(0.05, 0.95, f"Time: {i*self.dt:.2f}", transform=self.ax.transAxes)
+        self._ax.set_title("Wave Equation Free-Boundary", fontsize=16)
+        self._ax.text2D(
+            0.05, 0.95, f"Time: {i*self._dt:.2f}", transform=self._ax.transAxes
+        )
 
     def animate(self):
         anim = FuncAnimation(
-            self.fig, self.update, frames=self.frames, interval=self.interval
+            self._fig, self.update, frames=self._frames, interval=self._interval
         )
         plt.show()
         # To save the animation, uncomment the following line:

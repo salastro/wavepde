@@ -31,7 +31,7 @@ class Wave2D:
         """
         self._f = f
         self._g = g
-        self.a = a
+        self._a = a
         self._h = h
         self._c = c
         if dt > h / (c * 2**0.5):
@@ -47,8 +47,8 @@ class Wave2D:
         u = wave at time t.
         """
         self._x, self._y = np.meshgrid(
-            np.arange(-self.a, self.a + self._h, self._h),
-            np.arange(-self.a, self.a + self._h, self._h),
+            np.arange(-self._a, self._a + self._h, self._h),
+            np.arange(-self._a, self._a + self._h, self._h),
         )
         self._u0 = self._f(self._x, self._y)
         self._u = self._u0 + self._dt * self._g(self._x, self._y)
@@ -80,29 +80,7 @@ class Wave2D:
             2 * self._u - self._u0 + self._c**2 * self._dt**2 * self._laplacian(),
         )
 
-    def get_axes(self):
-        """
-        Get the axis of the domain.
-        Returns
-        -------
-        X : np.ndarray
-            X-coordinates of the domain.
-        Y : np.ndarray
-            Y-coordinates of the domain.
-        """
-        return self._x, self._y
-
     def get_wave(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """
-        Get the current wave.
-        Returns
-        -------
-        u : np.ndarray
-            Wave at time t.
-        """
-        return self._u
-
-    def get(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
         """
         Get the current wave and the axis of the domain.
         Returns
@@ -115,3 +93,23 @@ class Wave2D:
             Wave at time t.
         """
         return self._x, self._y, self._u
+
+    def get_params(self) -> tuple[Callable, Callable, float, float, float, float]:
+        """
+        Get the parameters of the wave.
+        Returns
+        -------
+        f : Callable
+            Initial condition.
+        g : Callable
+            Initial velocity.
+        a : float
+            Length of the domain.
+        h : float
+            Grid spacing.
+        c : float
+            Wave speed.
+        dt : float
+            Time step.
+        """
+        return self._f, self._g, self._a, self._h, self._c, self._dt
