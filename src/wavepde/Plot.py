@@ -71,5 +71,6 @@ class Wave2DAnim:
         
         if self.video:
             anim.save(self.video, fps=60, extra_args=['-vcodec', 'libx264'])
+            return
 
         plt.show()
