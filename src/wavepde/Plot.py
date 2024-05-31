@@ -3,56 +3,73 @@ from matplotlib import cm
 from matplotlib.animation import FuncAnimation
 from matplotlib.colors import Normalize
 
-
 class Wave2DAnim:
-    def __init__(self, wave, frames=480, interval=1):
-        self._wave = wave
-        self._frames = frames
-        self._interval = interval
+    def __init__(self, wave, frames: int, video: str = ""):
+        """
+        Parameters
+        ----------
+        wave : Wave2D
+            Wave object.
+        frames : int
+            Number of frames for the animation.
+        interval : int
+            Delay between frames in milliseconds.
+        is_video : bool
+            If True, save the animation as a video.
+        """
+        self.wave = wave
+        self.frames = frames
+        self.video = video
 
-        self._x, self._y, self._u = self._wave.get_wave()
-        _, _, self._a, _, _, self._dt = self._wave.get_params()
-        self._xmin, self._xmax = -self._a, self._a
-        self._ymin, self._ymax = -self._a, self._a
-        self._umin, self._umax = self._u.min(), self._u.max()
+        self.umin, self.umax = self.wave.u.min(), self.wave.u.max()
 
-        self._fig = plt.figure()
-        self._ax = self._fig.add_subplot(111, projection="3d")
-        self._ax.set_xlim(self._xmin, self._xmax)
-        self._ax.set_ylim(self._ymin, self._ymax)
-        self._ax.set_zlim(self._umin, self._umax)
-
-        self._norm = Normalize(vmin=self._umin, vmax=self._umax)
-        self._colormap = cm.viridis
-        self._surf = self._ax.plot_surface(
-            self._x, self._y, self._u, cmap=self._colormap, norm=self._norm
+        self.fig = plt.figure()
+        self.ax = self.fig.add_subplot(111, projection="3d")
+        self.ax.set_xlim(-self.wave.a, self.wave.a)
+        self.ax.set_ylim(-self.wave.a, self.wave.a)
+        self.ax.set_zlim(self.umin, self.umax)
+        self.ax.set_title("Wave Equation Free-Boundary", fontsize=16)
+        self.ax.text2D(
+            0.05, 0.95, f"Time: {0:.2f}", transform=self.ax.transAxes
         )
-        self._fig.colorbar(
-            cm.ScalarMappable(norm=self._norm, cmap=self._colormap),
-            ax=self._ax,
+
+        self.norm = Normalize(vmin=self.umin, vmax=self.umax)
+        self.colormap = cm.viridis
+        self.surf = self.ax.plot_surface(
+            self.wave.x, self.wave.y, self.wave.u, cmap=self.colormap, norm=self.norm
+        )
+        self.fig.colorbar(
+            cm.ScalarMappable(norm=self.norm, cmap=self.colormap),
+            ax=self.ax,
             shrink=0.5,
             aspect=5,
         )
 
-    def update(self, i):
-        self._wave.update()
-        _, _, self._u = self._wave.get_wave()
-        self._ax.clear()
-        self._ax.set_xlim(self._xmin, self._xmax)
-        self._ax.set_ylim(self._ymin, self._ymax)
-        self._ax.set_zlim(self._umin, self._umax)
-        self._surf = self._ax.plot_surface(
-            self._x, self._y, self._u, cmap=self._colormap, norm=self._norm
+    def update(self, i: int):
+        self.wave.update()
+        self.u = self.wave.u
+        self.ax.clear()
+        self.ax.set_xlim(-self.wave.a, self.wave.a)
+        self.ax.set_ylim(-self.wave.a, self.wave.a)
+        self.ax.set_zlim(self.umin, self.umax)
+        self.surf = self.ax.plot_surface(
+            self.wave.x, self.wave.y, self.wave.u, cmap=self.colormap, norm=self.norm
         )
-        self._ax.set_title("Wave Equation Free-Boundary", fontsize=16)
-        self._ax.text2D(
-            0.05, 0.95, f"Time: {i*self._dt:.2f}", transform=self._ax.transAxes
+        self.ax.set_title("Wave Equation Free-Boundary", fontsize=16)
+        self.ax.text2D(
+            0.05, 0.95, f"Time: {i * self.wave.dt:.2f}", transform=self.ax.transAxes
         )
 
     def animate(self):
         anim = FuncAnimation(
-            self._fig, self.update, frames=self._frames, interval=self._interval
+            self.fig,
+            self.update,
+            frames=self.frames,
+            interval=1,
+            repeat=False,
         )
+        
+        if self.video:
+            anim.save(self.video, fps=60, extra_args=['-vcodec', 'libx264'])
+
         plt.show()
-        # To save the animation, uncomment the following line:
-        # anim.save('wave_animation.mp4', fps=15, extra_args=['-vcodec', 'libx264'])
