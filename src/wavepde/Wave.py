@@ -1,5 +1,3 @@
-# Path: Wave.py
-
 from typing import Callable
 
 import numpy as np
@@ -29,31 +27,31 @@ class Wave2D:
         c : float
             Wave speed.
         """
-        self._f = f
-        self._g = g
-        self._a = a
-        self._h = h
-        self._c = c
+        self.f = f
+        self.g = g
+        self.a = a
+        self.h = h
+        self.c = c
         if dt > h / (c * 2**0.5):
             raise ValueError("Time step must be smaller than h/(c*sqrt(2))")
-        self._dt = dt
-        self._init_cond()
+        self.dt = dt
+        self.init_cond()
 
-    def _init_cond(self):
+    def init_cond(self):
         """
         Initialize the wave.
         X, Y = meshgrid of the domain.
         u0 = initial condition.
         u = wave at time t.
         """
-        self._x, self._y = np.meshgrid(
-            np.arange(-self._a, self._a + self._h, self._h),
-            np.arange(-self._a, self._a + self._h, self._h),
+        self.x, self.y = np.meshgrid(
+            np.arange(-self.a, self.a + self.h, self.h),
+            np.arange(-self.a, self.a + self.h, self.h),
         )
-        self._u0 = self._f(self._x, self._y)
-        self._u = self._u0 + self._dt * self._g(self._x, self._y)
+        self.u0 = self.f(self.x, self.y)
+        self.u = self.u0 + self.dt * self.g(self.x, self.y)
 
-    def _laplacian(self):
+    def laplacian(self):
         """
         Compute the Laplacian of the wave:
         Laplacian(u) = u_xx + u_yy
@@ -61,12 +59,12 @@ class Wave2D:
         u_xx = (u_{i+1, j} + u_{i-1, j} + u_{i, j+1} + u_{i, j-1} - 4u_{i, j})/h^2
         """
         return (
-            np.roll(self._u, 1, axis=0)
-            + np.roll(self._u, -1, axis=0)
-            + np.roll(self._u, 1, axis=1)
-            + np.roll(self._u, -1, axis=1)
-            - 4 * self._u
-        ) / self._h**2
+            np.roll(self.u, 1, axis=0)
+            + np.roll(self.u, -1, axis=0)
+            + np.roll(self.u, 1, axis=1)
+            + np.roll(self.u, -1, axis=1)
+            - 4 * self.u
+        ) / self.h**2
 
     def update(self):
         """
@@ -75,41 +73,7 @@ class Wave2D:
         using the finite difference method:
         u(x, y, t + dt) = 2u(x, y, t) - u(x, y, t - dt) + c^2 * dt^2 * (u_xx + u_yy)
         """
-        self._u0, self._u = (
-            self._u,
-            2 * self._u - self._u0 + self._c**2 * self._dt**2 * self._laplacian(),
+        self.u0, self.u = (
+            self.u,
+            2 * self.u - self.u0 + self.c**2 * self.dt**2 * self.laplacian(),
         )
-
-    def get_wave(self) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
-        """
-        Get the current wave and the axis of the domain.
-        Returns
-        -------
-        X : np.ndarray
-            X-coordinates of the domain.
-        Y : np.ndarray
-            Y-coordinates of the domain.
-        u : np.ndarray
-            Wave at time t.
-        """
-        return self._x, self._y, self._u
-
-    def get_params(self) -> tuple[Callable, Callable, float, float, float, float]:
-        """
-        Get the parameters of the wave.
-        Returns
-        -------
-        f : Callable
-            Initial condition.
-        g : Callable
-            Initial velocity.
-        a : float
-            Length of the domain.
-        h : float
-            Grid spacing.
-        c : float
-            Wave speed.
-        dt : float
-            Time step.
-        """
-        return self._f, self._g, self._a, self._h, self._c, self._dt
