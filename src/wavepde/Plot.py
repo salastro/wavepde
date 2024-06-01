@@ -74,13 +74,7 @@ class Wave2DAnim:
 
         self.fig = plt.figure()
         self.ax = self.fig.add_subplot(111, projection="3d")
-        self.ax.set_xlim(-self.wave.a, self.wave.a)
-        self.ax.set_ylim(-self.wave.a, self.wave.a)
-        self.ax.set_zlim(self.umin, self.umax)
-        self.ax.set_title("Wave Equation Free-Boundary", fontsize=16)
-        self.ax.text2D(
-            0.05, 0.95, f"Time: {0:.2f}", transform=self.ax.transAxes
-        )
+        self.plot()
 
         self.norm = Normalize(vmin=self.umin, vmax=self.umax)
         self.colormap = cm.viridis
@@ -94,19 +88,22 @@ class Wave2DAnim:
             aspect=5,
         )
 
+    def plot(self, i: int = 0):
+        self.ax.set_xlim(-self.wave.a, self.wave.a)
+        self.ax.set_ylim(-self.wave.a, self.wave.a)
+        self.ax.set_zlim(self.umin, self.umax)
+        self.ax.set_title("Wave Equation", fontsize=18)
+        self.ax.text2D(
+            0.05, 0.95, f"Time: {i * self.wave.dt:.2f}", transform=self.ax.transAxes
+        )
+
     def update(self, i: int):
         self.wave.update()
         self.u = self.wave.u
         self.ax.clear()
-        self.ax.set_xlim(-self.wave.a, self.wave.a)
-        self.ax.set_ylim(-self.wave.a, self.wave.a)
-        self.ax.set_zlim(self.umin, self.umax)
+        self.plot(i)
         self.surf = self.ax.plot_surface(
             self.wave.x, self.wave.y, self.wave.u, cmap=self.colormap, norm=self.norm
-        )
-        self.ax.set_title("Wave Equation Free-Boundary", fontsize=16)
-        self.ax.text2D(
-            0.05, 0.95, f"Time: {i * self.wave.dt:.2f}", transform=self.ax.transAxes
         )
 
     def animate(self):
@@ -117,9 +114,9 @@ class Wave2DAnim:
             interval=1,
             repeat=False,
         )
-        
+
         if self.video:
-            anim.save(self.video, fps=60, extra_args=['-vcodec', 'libx264'])
+            anim.save(self.video, fps=60, extra_args=["-vcodec", "libx264"])
             return
 
         plt.show()
