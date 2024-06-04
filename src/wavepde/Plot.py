@@ -1,3 +1,5 @@
+import os
+
 import matplotlib.pyplot as plt
 from matplotlib import cm
 from matplotlib.animation import FuncAnimation
@@ -22,7 +24,7 @@ class WaveAnimBase:
         self.wave = wave
         self.frames = frames
         self.video = video
-        self.umin, self.umax = self.wave.u.min(), self.wave.u.max()
+        self.umin, self.umax = -1, 1
 
     def update(self, i: int):
         raise NotImplementedError("Subclasses should implement this method.")
@@ -40,11 +42,13 @@ class WaveAnimBase:
                 self.fig,
                 update_frame,
                 frames=self.frames,
-                interval=1,
+                interval=0,
                 repeat=False,
             )
 
             if self.video:
+                if os.path.exists(self.video):
+                    raise FileExistsError(f"File {self.video} already exists.")
                 anim.save(self.video, fps=60, extra_args=["-vcodec", "libx264"])
             else:
                 plt.show()
@@ -57,11 +61,11 @@ class Wave1DAnim(WaveAnimBase):
         (self.line,) = self.ax.plot(self.wave.x, self.wave.u)
         self.ax.set_xlim(-self.wave.a, self.wave.a)
         self.ax.set_ylim(-self.umax, self.umax)
-        self.ax.set_title("Wave Equation", fontsize=18)
+        self.ax.set_title("Wave Equation Neumann Boundaries", fontsize=18)
         self.time_text = self.ax.text(0.05, 0.95, "", transform=self.ax.transAxes)
 
     def update(self, i: int):
-        self.wave.update()
+        self.wave.update(i)
         self.line.set_ydata(self.wave.u)
         self.time_text.set_text(f"Time: {i * self.wave.dt:.2f}")
 
@@ -83,18 +87,30 @@ class Wave2DAnim(WaveAnimBase):
             shrink=0.5,
             aspect=5,
         )
+        self.fig.text(0.6, 0.85, r"$u(0, 0, t) = A\sin(\omega t)$", fontsize=14)
+        self.fig.text(0.6, 0.8, r"$u(x, y, 0) = 0$", fontsize=14)
+        self.fig.text(
+            0.05, 0.9, rf"$\Omega=\pm{self.wave.a}$", transform=self.ax.transAxes
+        )
+        self.fig.text(
+            0.05,
+            0.85,
+            rf"$n={int(2*self.wave.a/self.wave.h)}$",
+            transform=self.ax.transAxes,
+        )
 
     def plot_surface(self, i: int = 0):
         self.ax.set_xlim(-self.wave.a, self.wave.x.max())
         self.ax.set_ylim(-self.wave.a, self.wave.y.max())
         self.ax.set_zlim(self.umin, self.umax)
-        self.ax.set_title("Wave Equation", fontsize=18)
+        self.ax.set_title("Wave Equation Neumann Boundaries", fontsize=18)
         self.ax.text2D(
             0.05, 0.95, f"Time: {i * self.wave.dt:.2f}", transform=self.ax.transAxes
         )
+        self.ax.axis("off")
 
     def update(self, i: int):
-        self.wave.update()
+        self.wave.update(i)
         self.ax.clear()
         self.plot_surface(i)
         self.surf = self.ax.plot_surface(
