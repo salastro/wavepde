@@ -1,5 +1,9 @@
 # WavePDE
 
+
+https://github.com/salastro/wavepde/assets/63563250/93cbb5e9-41a4-49d3-8b36-88a8a2b3adb2
+
+
 ## Overview
 
 WavePDE is a Python project that simulates and animates the wave equation in one
