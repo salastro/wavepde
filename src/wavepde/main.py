@@ -2,8 +2,8 @@ import argparse
 
 import numpy as np
 
-from wavepde.Plot import Wave1DAnim, Wave2DAnim
-from wavepde.Wave import Wave1D, Wave2D
+from wavepde.plot import Wave1DAnim, Wave2DAnim
+from wavepde.wave import Wave1D, Wave2D
 
 
 def parse_arguments():
