@@ -16,3 +16,6 @@ rich = "^13.7.1"
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+wavepde = "wavepde.main:main"
