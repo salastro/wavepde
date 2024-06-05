@@ -16,7 +16,6 @@ class Wave1D:
         dx: float,
         c: float,
         dt: float,
-        bndry: list = [0, 0],
     ):
         """
         Parameters
@@ -42,7 +41,6 @@ class Wave1D:
         if dt > dx / (c * 2**0.5):
             raise ValueError("Time step must be smaller than h/(c*sqrt(2))")
         self.dt = dt
-        self.bndry = bndry
         self.init_cond()
 
     def init_cond(self):
@@ -52,22 +50,31 @@ class Wave1D:
         u0 = initial condition.
         u = wave at time t.
         """
-        self.x = np.arange(-self.a-self.dx, self.a + 2*self.dx, self.dx)
+        self.x = np.arange(-self.a - self.dx, self.a + self.dx, self.dx)
         self.u0 = self.f(self.x)
         self.u = self.u0 + self.dt * self.g(self.x)
-        self.bndry_cond(self.bndry)
+        self.bndry_cond(0)
 
-    def bndry_cond(self, bndry: list):
+    def bndry_cond(self, i):
         """
         Apply boundary conditions.
         """
+        # Convert iteration to time
+        t = i * self.dt
+        n = 2
+        omega = (np.pi * self.c * n) / (4 * self.a)
+        self.u[0] = self.u[2]
+        self.u[-1] = 0
+        if t < 2 * (2 * self.a) / self.c:
+            self.u[1] = 0.5 * np.sin(omega * t)
+        return
         # Free boundary conditions
         self.u[0] = self.u[2]
         self.u[-1] = self.u[-3]
         return
         # Fixed boundary conditions
-        self.u[0] = bndry[0]
-        self.u[-1] = bndry[1]
+        self.u[0] = 0
+        self.u[-1] = 0
 
     def laplacian(self):
         """
@@ -78,7 +85,7 @@ class Wave1D:
         """
         return (np.roll(self.u, 1) + np.roll(self.u, -1) - 2 * self.u) / self.dx**2
 
-    def update(self):
+    def update(self, i):
         """
         Update the wave:
         u_tt = c^2 * (u_xx + u_yy)
@@ -89,7 +96,7 @@ class Wave1D:
             self.u,
             2 * self.u - self.u0 + self.c**2 * self.dt**2 * self.laplacian(),
         )
-        self.bndry_cond(self.bndry)
+        self.bndry_cond(i)
 
 
 class Wave2D:
@@ -105,7 +112,8 @@ class Wave2D:
         h: float,
         c: float,
         dt: float,
-        bndry: list = [0, 0, 0, 0],
+        bndry: str,
+        source: list[float],
     ):
         """
         Parameters
@@ -122,6 +130,10 @@ class Wave2D:
             Time step.
         c : float
             Wave speed.
+        bndry : str
+            Boundary condition.
+        source : list[float]
+            Amplitude and frequency of the source.
         """
         self.f = f
         self.g = g
@@ -132,6 +144,12 @@ class Wave2D:
             raise ValueError("Time step must be smaller than h/(c*sqrt(2))")
         self.dt = dt
         self.bndry = bndry
+        if source is not None:
+            self.amplitude = source[0]
+            self.omega = 2 * np.pi * source[1]
+            self.source = True
+        else:
+            self.source = False
         self.init_cond()
 
     def init_cond(self):
@@ -141,31 +159,45 @@ class Wave2D:
         u0 = initial condition.
         u = wave at time t.
         """
-        self.x, self.y = np.meshgrid(
-            np.arange(-self.a-self.h, self.a + 2*self.h, self.h),
-            np.arange(-self.a-self.h, self.a + 2*self.h, self.h),
-        )
+        match self.bndry:
+            case "neumann":
+                self.x, self.y = np.meshgrid(
+                    np.arange(-self.a - self.h, self.a + 2 * self.h, self.h),
+                    np.arange(-self.a - self.h, self.a + 2 * self.h, self.h),
+                )
+            case "dirichlet":
+                self.x, self.y = np.meshgrid(
+                    np.arange(-self.a, self.a + self.h, self.h),
+                    np.arange(-self.a, self.a + self.h, self.h),
+                )
+            case _:
+                raise ValueError("Boundary condition not recognized")
+        self.mask = np.where(self.x**2 + self.y**2 <= self.a, 1, 0)
         self.u0 = self.f(self.x, self.y)
         self.u = self.u0 + self.dt * self.g(self.x, self.y)
-        self.bndry_cond(self.bndry)
+        self.bndry_cond(0)
 
-    def bndry_cond(self, bndry: list):
+    def bndry_cond(self, i):
         """
         Apply boundary conditions.
         """
-        # Free boundary conditions
-        self.u[0, :] = self.u[2, :]
-        self.u[-1, :] = self.u[-3, :]
-        self.u[:, 0] = self.u[:, 2]
-        self.u[:, -1] = self.u[:, -3]
-        # Zero at center
-        # self.u[self.u.shape[0]//2, self.u.shape[1]//2] = 0
-        return
-        # Fixed boundary conditions
-        self.u[0, :] = bndry[0]
-        self.u[-1, :] = bndry[1]
-        self.u[:, 0] = bndry[2]
-        self.u[:, -1] = bndry[3]
+        if self.source:
+            center = self.u.shape[0] // 2
+            t = i * self.dt
+            self.u[center, center] = self.amplitude * np.sin(self.omega * t)
+        match self.bndry:
+            case "neumann":
+                # Free boundary conditions
+                self.u[0, :] = self.u[2, :]
+                self.u[-1, :] = self.u[-3, :]
+                self.u[:, 0] = self.u[:, 2]
+                self.u[:, -1] = self.u[:, -3]
+            case "dirichlet":
+                # Fixed boundary conditions
+                self.u[0, :] = 0
+                self.u[-1, :] = 0
+                self.u[:, 0] = 0
+                self.u[:, -1] = 0
 
     def laplacian(self):
         """
@@ -182,7 +214,7 @@ class Wave2D:
             - 4 * self.u
         ) / self.h**2
 
-    def update(self):
+    def update(self, i):
         """
         Update the wave:
         u_tt = c^2 * (u_xx + u_yy)
@@ -193,4 +225,4 @@ class Wave2D:
             self.u,
             2 * self.u - self.u0 + self.c**2 * self.dt**2 * self.laplacian(),
         )
-        self.bndry_cond(self.bndry)
+        self.bndry_cond(i)

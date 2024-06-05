@@ -24,7 +24,10 @@ class WaveAnimBase:
         self.wave = wave
         self.frames = frames
         self.video = video
-        self.umin, self.umax = -1, 1
+        if self.wave.u.min() == self.wave.u.max():
+            self.umin, self.umax = -1, 1
+        else:
+            self.umin, self.umax = self.wave.u.min(), self.wave.u.max()
 
     def update(self, i: int):
         raise NotImplementedError("Subclasses should implement this method.")

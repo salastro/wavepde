@@ -8,6 +8,12 @@ from wavepde.Wave import Wave1D, Wave2D
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description="2D Wave Equation Animation")
+    parser.add_argument(
+        "--dim",
+        type=int,
+        default=2,
+        help="Dimension of the wave equation (1 or 2)",
+    )
     parser.add_argument("-a", type=float, default=1, help="Length of the domain")
     parser.add_argument(
         "-n", type=int, default=50, help="Number of grid points along each axis"
@@ -20,10 +26,25 @@ def parse_arguments():
         "-T", type=float, default=1, help="Final time for the simulation"
     )
     parser.add_argument(
-        "-f", type=str, default="np.cos(np.pi*x)", help="Initial condition"
+        "-f", type=str, default="np.zeros_like(x)", help="Initial condition"
     )
     parser.add_argument(
         "-g", type=str, default="np.zeros_like(x)", help="Initial velocity condition"
+    )
+    parser.add_argument(
+        "--bndry",
+        dest="bndry",
+        type=str,
+        choices=["dirichlet", "neumann"],
+        default="neumann",
+        help="Boundary condition (only for 2D)",
+    )
+    parser.add_argument(
+        "--source",
+        nargs="+",
+        type=float,
+        default=[0.5, 2],
+        help="Amplitude and angular frequency of the source (only for 2D)",
     )
     parser.add_argument(
         "--video",
@@ -31,20 +52,21 @@ def parse_arguments():
         default="",
         help="Name of the video file. If not provided, the animation will be displayed.",
     )
-    parser.add_argument(
-        "--bndry",
-        type=float,
-        nargs=4,
-        default=[0, 0, 0, 0],
-        help="Boundary conditions [left, right, bottom, top]",
-    )
-    parser.add_argument(
-        "--dim",
-        type=int,
-        default=2,
-        help="Dimension of the wave equation (1 or 2)",
-    )
-    return parser.parse_args()
+
+    args = parser.parse_args()
+
+    if args.bndry not in ["dirichlet", "neumann"]:
+        parser.error("Boundary condition must be 'dirichlet' or 'neumann'")
+
+    if args.source[0] == 0:
+        args.source = None
+    elif len(args.source) != 2:
+        parser.error("Source must have two values: amplitude and angular frequency")
+
+    if args.dim > 2 or args.dim < 1:
+        parser.error("Dimension must be 1 or 2")
+
+    return args
 
 
 def init_wave_sim(args) -> tuple:
@@ -55,9 +77,9 @@ def init_wave_sim(args) -> tuple:
     if args.dim == 1:
         initial_condition = lambda x: eval(args.f)
         initial_velocity = lambda x: eval(args.g)
-        
+
         return (
-            Wave1D(initial_condition, initial_velocity, args.a, h, args.c, dt, args.bndry),
+            Wave1D(initial_condition, initial_velocity, args.a, h, args.c, dt),
             frames,
             args.video,
         )
@@ -66,7 +88,16 @@ def init_wave_sim(args) -> tuple:
         initial_velocity = lambda x, y: eval(args.g)
 
         return (
-            Wave2D(initial_condition, initial_velocity, args.a, h, args.c, dt),
+            Wave2D(
+                initial_condition,
+                initial_velocity,
+                args.a,
+                h,
+                args.c,
+                dt,
+                args.bndry,
+                args.source,
+            ),
             frames,
             args.video,
         )
